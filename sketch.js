@@ -1,180 +1,266 @@
 /*
-Week 4 — Example 2: Level class (hard-coded grid)
-
-Goal of this example:
-- Keep the exact same *visual output* as Example 1 (a drawn maze).
-- Change the *structure* of the code so that “a level” becomes a reusable object.
-
-Key teaching idea:
-- A class lets you bundle data (the grid) + behavior (draw, size helpers)
-  into one thing you can reuse later (especially once you start loading
-  multiple levels from JSON).
+Sidequest — Multi-Level Maze with Colored Circle Goals
+JSON data + loops + dynamic level switching
 */
 
-// ----------------------------
-// 1) Global constants
-// ----------------------------
-
-// Tile Size (TS) = how many pixels wide/tall each grid cell is.
-// If TS=32, then each number in the 2D grid draws as a 32x32 square.
-const TS = 32;
+const TS = 28;
 
 // ----------------------------
-// 2) Level class definition
+// LEVEL DATA (JSON STYLE)
 // ----------------------------
 
-/*
-A Level is responsible for:
-- storing the grid (2D array of numbers)
-- knowing how big it is (rows/cols and pixel dimensions)
-- drawing itself
+const levelData = {
+  levels: [
+    {
+      name: "Level 1",
+      playerStart: { r: 1, c: 1 },
+      goalColor: [0, 200, 120], // green
+      grid: [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+        [1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 3, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+        [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      ],
+    },
+    {
+      name: "Level 2",
+      playerStart: { r: 1, c: 1 },
+      goalColor: [255, 100, 150], // pink
+      grid: [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3, 0, 1],
+        [1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+        [1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 3, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 3, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      ],
+    },
+    {
+      name: "Level 3",
+      playerStart: { r: 1, c: 1 },
+      goalColor: [100, 180, 255], // blue
+      grid: [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+        [1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 3, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+        [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1],
+        [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      ],
+    },
+  ],
+};
 
-Important concept:
-- The sketch (setup/draw) should not need to know the details
-  of how the level draws—just that it can draw.
-*/
+// ----------------------------
+// LEVEL CLASS
+// ----------------------------
+
 class Level {
-  /*
-  The constructor runs when you do: new Level(grid, TS)
-
-  Parameters:
-  - grid: a 2D array like grid[row][col]
-  - tileSize: TS (pixels per tile)
-  */
-  constructor(grid, tileSize) {
-    this.grid = grid;
+  constructor(data, tileSize) {
+    this.grid = data.grid;
+    this.goalColor = data.goalColor;
+    this.playerStart = data.playerStart;
     this.ts = tileSize;
+    this.remainingGoals = this.countGoals();
   }
 
-  // How many columns are in the grid?
-  // (We assume each row has the same number of columns.)
-  cols() {
-    return this.grid[0].length;
-  }
-
-  // How many rows are in the grid?
   rows() {
     return this.grid.length;
   }
-
-  // Pixel width of the level = columns * tileSize
+  cols() {
+    return this.grid[0].length;
+  }
   pixelWidth() {
     return this.cols() * this.ts;
   }
-
-  // Pixel height of the level = rows * tileSize
   pixelHeight() {
     return this.rows() * this.ts;
   }
 
-  /*
-  Draw the whole grid.
+  isWall(r, c) {
+    return this.grid[r][c] === 1;
+  }
 
-  Tile legend (same as Example 1):
-  - 0 = floor
-  - 1 = wall
+  isGoal(r, c) {
+    return this.grid[r][c] === 3;
+  }
 
-  This method contains the “nested for loop” logic, so the sketch doesn’t have to.
-  Later, you can extend this to:
-  - draw special tiles
-  - draw decorations
-  - expose collision checks (isWall, etc.)
-  */
-  draw() {
-    // Loop over each row...
+  collectGoal(r, c) {
+    if (this.isGoal(r, c)) {
+      this.grid[r][c] = 0;
+      this.remainingGoals--;
+    }
+  }
+
+  countGoals() {
+    let count = 0;
     for (let r = 0; r < this.rows(); r++) {
-      // ...and each column in that row.
       for (let c = 0; c < this.cols(); c++) {
-        const tileValue = this.grid[r][c];
+        if (this.grid[r][c] === 3) count++;
+      }
+    }
+    return count;
+  }
 
-        // Choose a colour based on the tile.
-        if (tileValue === 1) {
-          fill(30, 50, 60); // wall colour (dark teal)
-        } else {
-          fill(230); // floor colour (light gray)
+  draw() {
+    for (let r = 0; r < this.rows(); r++) {
+      for (let c = 0; c < this.cols(); c++) {
+        const tile = this.grid[r][c];
+
+        if (tile === 1) {
+          fill(25, 45, 70);
+          rect(c * this.ts, r * this.ts, this.ts, this.ts);
         }
 
-        // Convert grid coordinates (row/col) into pixel coordinates (x/y).
-        // - x goes with column
-        // - y goes with row
-        const x = c * this.ts;
-        const y = r * this.ts;
+        if (tile === 0) {
+          fill(245);
+          rect(c * this.ts, r * this.ts, this.ts, this.ts);
+        }
 
-        // Draw the tile rectangle.
-        rect(x, y, this.ts, this.ts);
+        if (tile === 3) {
+          fill(...this.goalColor);
+          circle(
+            c * this.ts + this.ts / 2,
+            r * this.ts + this.ts / 2,
+            this.ts * 0.5,
+          );
+        }
       }
     }
   }
 }
 
 // ----------------------------
-// 3) Hard-coded grid data (same as Example 1)
+// GAME STATE
 // ----------------------------
 
-/*
-This is identical in concept to Example 1: it’s still “the level as a 2D array.”
-- We are not introducing new data structures here.
-- We’re showing that classes are mainly about organization + reuse.
-
-The grid is structured as:
-grid[row][col]
-
-So grid[0] is the first row, grid[0][0] is the top-left cell.
-*/
-const grid = [
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-  [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
-  [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-  [1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-  [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
-  [1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-]; // based on your Example 1 grid
-
-// ----------------------------
-// 4) Sketch state
-// ----------------------------
-
-// We’ll store our Level instance here so draw() can access it.
 let level;
+let currentLevelIndex = 0;
+
+let player = { r: 0, c: 0, direction: 0 };
 
 // ----------------------------
-// 5) p5.js lifecycle functions
+// SETUP
 // ----------------------------
 
 function setup() {
-  /*
-  Create a Level instance from the grid.
-
-  Think of this like:
-  - “Here is some raw data (grid)”
-  - “Wrap it in a Level object that knows what to do with it”
-  */
-  level = new Level(grid, TS);
-
-  // Make the canvas exactly fit the level size.
-  // This is a nice practical reason to have pixelWidth/pixelHeight helpers.
-  createCanvas(level.pixelWidth(), level.pixelHeight());
-
-  // Setup drawing styles.
-  noStroke(); // cleaner tiles (no outlines) [file:11]
-  textFont("sans-serif");
-  textSize(14);
+  loadLevel(0);
+  noStroke();
 }
 
+function loadLevel(index) {
+  const data = levelData.levels[index];
+  level = new Level(data, TS);
+
+  createCanvas(level.pixelWidth(), level.pixelHeight());
+
+  player.r = data.playerStart.r;
+  player.c = data.playerStart.c;
+}
+
+// ----------------------------
+// DRAW
+// ----------------------------
+
 function draw() {
-  // Clear the screen each frame.
-  background(240);
-
-  // Delegate drawing the maze to the level object.
-  // This is the key structural difference from Example 1.
+  background(230);
   level.draw();
+  drawPacman();
+  checkLevelComplete();
+}
 
-  // Draw a small label so students can tell examples apart.
-  fill(0);
-  text("Level class → grid render", 10, 16);
+// ----------------------------
+// PACMAN
+// ----------------------------
+
+function drawPacman() {
+  const x = player.c * TS + TS / 2;
+  const y = player.r * TS + TS / 2;
+
+  fill(255, 204, 0);
+
+  let angleOffset = 0;
+  if (player.direction === 0) angleOffset = 0;
+  if (player.direction === 1) angleOffset = HALF_PI;
+  if (player.direction === 2) angleOffset = PI;
+  if (player.direction === 3) angleOffset = -HALF_PI;
+
+  arc(
+    x,
+    y,
+    TS * 0.8,
+    TS * 0.8,
+    radians(30) + angleOffset,
+    radians(330) + angleOffset,
+    PIE,
+  );
+}
+
+// ----------------------------
+// MOVEMENT
+// ----------------------------
+
+function keyPressed() {
+  let newR = player.r;
+  let newC = player.c;
+
+  if (keyCode === UP_ARROW) {
+    newR--;
+    player.direction = 3;
+  }
+  if (keyCode === DOWN_ARROW) {
+    newR++;
+    player.direction = 1;
+  }
+  if (keyCode === LEFT_ARROW) {
+    newC--;
+    player.direction = 2;
+  }
+  if (keyCode === RIGHT_ARROW) {
+    newC++;
+    player.direction = 0;
+  }
+
+  if (!level.isWall(newR, newC)) {
+    player.r = newR;
+    player.c = newC;
+    level.collectGoal(newR, newC);
+  }
+}
+
+// ----------------------------
+// LEVEL COMPLETE
+// ----------------------------
+
+function checkLevelComplete() {
+  if (level.remainingGoals === 0) {
+    currentLevelIndex++;
+
+    if (currentLevelIndex < levelData.levels.length) {
+      loadLevel(currentLevelIndex);
+    } else {
+      noLoop();
+      fill(0);
+      textSize(28);
+      textAlign(CENTER, CENTER);
+      text("All Levels Complete 🎉", width / 2, height / 2);
+    }
+  }
 }
